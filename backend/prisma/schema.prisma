@@ -1,0 +1,103 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - represents both admin and regular users
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String   // hashed password
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  assignments Assignment[]
+  requests    Request[]
+
+  @@map("users")
+}
+
+// Gadget model - represents items in stock
+model Gadget {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  quantity    Int           @default(0)
+  status      GadgetStatus  @default(AVAILABLE)
+  category    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  assignments Assignment[]
+  requests    Request[]
+
+  @@map("gadgets")
+}
+
+// Assignment model - tracks who has what gadget
+model Assignment {
+  id         String    @id @default(uuid())
+  userId     String
+  gadgetId   String
+  startDate  DateTime  @default(now())
+  endDate    DateTime?
+  returned   Boolean   @default(false)
+  returnedAt DateTime?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gadget Gadget @relation(fields: [gadgetId], references: [id], onDelete: Cascade)
+
+  @@map("assignments")
+}
+
+// Request model - tracks user requests for gadgets
+model Request {
+  id        String        @id @default(uuid())
+  userId    String
+  gadgetId  String
+  status    RequestStatus @default(PENDING)
+  reason    String?
+  quantity  Int           @default(1)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gadget Gadget @relation(fields: [gadgetId], references: [id], onDelete: Cascade)
+
+  @@map("requests")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  USER
+}
+
+enum GadgetStatus {
+  AVAILABLE
+  IN_USE
+  BROKEN
+  MAINTENANCE
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
